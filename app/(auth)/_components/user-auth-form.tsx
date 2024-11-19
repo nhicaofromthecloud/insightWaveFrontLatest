@@ -39,6 +39,7 @@ export default function UserAuthForm() {
     resolver: zodResolver(formSchema),
     defaultValues
   });
+  const [invalidFields, setInvalidFields] = useState<string[]>([]);
 
   const onSubmit = async (data: UserFormValue) => {
     startTransition(() => {
@@ -53,6 +54,18 @@ export default function UserAuthForm() {
   };
 
   const isEmailValid = form.formState.isValid && form.getValues('email');
+
+  const handleDisabledClick = () => {
+    const emptyFields: string[] = [];
+    if (!form.getValues('email')) emptyFields.push('email');
+    if (form.getValues('email') && !form.getValues('password')) {
+      emptyFields.push('password');
+    }
+
+    setInvalidFields(emptyFields);
+    // Reset the animation after a short delay
+    setTimeout(() => setInvalidFields([]), 1000);
+  };
 
   return (
     <>
@@ -69,7 +82,8 @@ export default function UserAuthForm() {
                 <FormLabel
                   className={cn(
                     'transition-colors duration-200',
-                    !form.formState.isValid &&
+                    (!form.formState.isValid ||
+                      invalidFields.includes('email')) &&
                       field.value && ['text-red-500', 'animate-shake']
                   )}
                 >
@@ -84,25 +98,14 @@ export default function UserAuthForm() {
                     disabled={loading}
                     className={cn(
                       'transition-all duration-200',
-                      !form.formState.isValid &&
-                        field.value && [
-                          'animate-shake',
-                          'border-red-500',
-                          'focus-visible:ring-red-500'
-                        ]
+                      (!form.formState.isValid ||
+                        invalidFields.includes('email')) && [
+                        'animate-shake',
+                        'border-red-500',
+                        'focus-visible:ring-red-500'
+                      ]
                     )}
                     {...field}
-                    onBlur={(e) => {
-                      field.onBlur();
-                      if (!form.formState.isValid && field.value) {
-                        // Trigger shake animation on blur if invalid and has value
-                        const input = e.target;
-                        input.classList.remove('animate-shake');
-                        // Force a reflow to restart animation
-                        void input.offsetWidth;
-                        input.classList.add('animate-shake');
-                      }
-                    }}
                   />
                 </FormControl>
                 <FormMessage className="text-red-500" />
@@ -115,7 +118,19 @@ export default function UserAuthForm() {
             name="password"
             render={({ field }) => (
               <FormItem className={isEmailValid ? '' : 'opacity-50'}>
-                <FormLabel>Password</FormLabel>
+                <FormLabel
+                  className={cn(
+                    'transition-colors duration-200',
+                    invalidFields.includes('password') && [
+                      'text-red-500',
+                      'animate-shake'
+                    ]
+                  )}
+                >
+                  {invalidFields.includes('password')
+                    ? 'Enter password!'
+                    : 'Password'}
+                </FormLabel>
                 <FormControl>
                   <Input
                     type="password"
@@ -125,6 +140,14 @@ export default function UserAuthForm() {
                         : 'Enter valid email'
                     }
                     disabled={!isEmailValid}
+                    className={cn(
+                      'transition-all duration-200',
+                      invalidFields.includes('password') && [
+                        'animate-shake',
+                        'border-red-500',
+                        'focus-visible:ring-red-500'
+                      ]
+                    )}
                     {...field}
                   />
                 </FormControl>
@@ -133,7 +156,17 @@ export default function UserAuthForm() {
             )}
           />
 
-          <Button disabled={loading} className="ml-auto w-full" type="submit">
+          <Button
+            disabled={loading}
+            className="ml-auto w-full"
+            type="submit"
+            onClick={(e) => {
+              if (!form.getValues('email') || !form.getValues('password')) {
+                e.preventDefault();
+                handleDisabledClick();
+              }
+            }}
+          >
             {isSignIn ? 'Sign in' : 'Sign up'}
           </Button>
 

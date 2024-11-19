@@ -99,14 +99,11 @@ export async function POST(request: Request) {
 
   const streamingData = new StreamData();
 
-  const reviewData = await fetch(
-    'https://easy-next-piglet.ngrok-free.app/api/review',
-    {
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`
-      }
+  const reviewData = await fetch(`${process.env.API_URL}/api/review`, {
+    headers: {
+      Authorization: `Bearer ${session.accessToken}`
     }
-  ).then((res) => res.json());
+  }).then((res) => res.json());
 
   const systemPromptWithContext = `${systemPrompt}\n\nAvailable review data: ${JSON.stringify(
     reviewData

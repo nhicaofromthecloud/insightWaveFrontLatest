@@ -15,6 +15,11 @@ export const authConfig: NextAuthConfig = {
         if (isLoggedIn) return true;
         return false;
       }
+
+      if (isLoggedIn && nextUrl.pathname === '/') {
+        return Response.redirect(new URL('/dashboard', nextUrl));
+      }
+
       return true;
     },
     async jwt({ token, user }) {
@@ -55,20 +60,17 @@ export const authConfig: NextAuthConfig = {
         }
 
         try {
-          const response = await fetch(
-            'https://easy-next-piglet.ngrok-free.app/login',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true'
-              },
-              body: JSON.stringify({
-                email: credentials.email,
-                password: credentials.password
-              })
-            }
-          );
+          const response = await fetch(`${process.env.API_URL}/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true'
+            },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password
+            })
+          });
 
           const data = await response.json();
 
@@ -101,21 +103,18 @@ export const authConfig: NextAuthConfig = {
         }
 
         try {
-          const response = await fetch(
-            'https://easy-next-piglet.ngrok-free.app/signup',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true'
-              },
-              body: JSON.stringify({
-                email: credentials.email,
-                password: credentials.password,
-                confirmPassword: credentials.confirmPassword
-              })
-            }
-          );
+          const response = await fetch(`${process.env.API_URL}/signup`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'true'
+            },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+              confirmPassword: credentials.confirmPassword
+            })
+          });
 
           const data = await response.json();
 
