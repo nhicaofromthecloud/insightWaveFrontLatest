@@ -17,13 +17,13 @@ export function OverviewContent() {
   const { data: session } = useSession();
 
   const reviewData = useReviews({
-    endpoint: 'https://easy-next-piglet.ngrok-free.app/api/review',
+    endpoint: `${process.env.NEXT_PUBLIC_API_URL}/api/review`,
     method: 'GET',
     accessToken: session?.accessToken
   });
 
   const customerData = useCustomers({
-    endpoint: 'https://easy-next-piglet.ngrok-free.app/api/customer',
+    endpoint: `${process.env.NEXT_PUBLIC_API_URL}/api/customer`,
     method: 'GET',
     accessToken: session?.accessToken
   });
