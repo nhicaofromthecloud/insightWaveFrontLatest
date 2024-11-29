@@ -15,7 +15,6 @@ export default function DashboardLayout({
 }) {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const defaultOpen = document.cookie.includes('sidebar:state=true');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -33,7 +32,7 @@ export default function DashboardLayout({
 
   return (
     <KBar>
-      <SidebarProvider defaultOpen={defaultOpen}>
+      <SidebarProvider defaultOpen={false}>
         <AppSidebar />
         <SidebarInset>
           <Header />

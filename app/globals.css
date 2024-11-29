@@ -103,3 +103,15 @@
     @apply bg-background text-foreground;
   }
 }
+
+[data-chart-container] {
+  transition:
+    height 200ms ease-in-out,
+    width 200ms ease-in-out;
+}
+
+.recharts-wrapper {
+  transition:
+    height 200ms ease-in-out,
+    width 200ms ease-in-out;
+}

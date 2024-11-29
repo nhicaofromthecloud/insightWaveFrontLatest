@@ -26,6 +26,13 @@ import {
 import { generateTitleFromUserMessage } from '@/ai/actions';
 
 import { connectToMongo } from '@/lib/utils';
+import {
+  weeklyAnalysis,
+  monthlyAnalysis,
+  yearlyAnalysis,
+  preprocessUserMessage
+} from '@/ai/analysis';
+import { determineAnalysisType } from '@/lib/utils';
 
 export const maxDuration = 60;
 
@@ -55,9 +62,11 @@ export async function POST(request: Request) {
     id,
     messages,
     modelId
-  }: { id: string; messages: Array<Message>; modelId: string } =
-    await request.json();
-  console.log(id, messages, modelId, 'THIS IS REQUEST');
+  }: {
+    id: string;
+    messages: Array<Message>;
+    modelId: string;
+  } = await request.json();
 
   const session = await auth();
 
@@ -79,12 +88,22 @@ export async function POST(request: Request) {
 
   const coreMessages = convertToCoreMessages(messages);
   const userMessage = getMostRecentUserMessage(coreMessages);
-  console.log(userMessage, 'THIS IS USER MESSAGE');
-  console.log(coreMessages, 'THIS IS CORE MESSAGES');
 
   if (!userMessage) {
     return new Response('No user message found', { status: 400 });
   }
+
+  const preprocessed = await preprocessUserMessage(userMessage.content);
+  console.log('Preprocessed:', preprocessed);
+
+  const timeRange = {
+    start: parseDate(preprocessed.timeRange.from),
+    end: parseDate(preprocessed.timeRange.to),
+    type: determineRangeType(
+      parseDate(preprocessed.timeRange.from),
+      parseDate(preprocessed.timeRange.to)
+    )
+  };
 
   const chat = await getChatById({ id });
 
@@ -99,15 +118,19 @@ export async function POST(request: Request) {
 
   const streamingData = new StreamData();
 
-  const reviewData = await fetch(`${process.env.API_URL}/api/review`, {
-    headers: {
-      Authorization: `Bearer ${session.accessToken}`
-    }
-  }).then((res) => res.json());
+  let analysisResult;
+  switch (timeRange.type) {
+    case 'monthly':
+      analysisResult = await monthlyAnalysis({ timeRange });
+      break;
+    case 'yearly':
+      analysisResult = await yearlyAnalysis({ timeRange });
+      break;
+    default:
+      analysisResult = await weeklyAnalysis({ timeRange });
+  }
 
-  const systemPromptWithContext = `${systemPrompt}\n\nAvailable review data: ${JSON.stringify(
-    reviewData
-  )}`;
+  const systemPromptWithContext = `${systemPrompt}\n\n${analysisResult.prompt}`;
 
   const result = await streamText({
     model: customModel(model.apiIdentifier),
@@ -145,12 +168,7 @@ export async function POST(request: Request) {
           console.error('Failed to save chat');
         }
       }
-
       streamingData.close();
-    },
-    experimental_telemetry: {
-      isEnabled: true,
-      functionId: 'stream-text'
     }
   });
 
@@ -188,4 +206,19 @@ export async function DELETE(request: Request) {
       status: 500
     });
   }
+}
+
+function parseDate(dateStr: string): Date {
+  const [day, month, year] = dateStr.split('/').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function determineRangeType(
+  start: Date,
+  end: Date
+): 'weekly' | 'monthly' | 'yearly' {
+  const diffDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+  if (diffDays > 180) return 'yearly';
+  if (diffDays > 27) return 'monthly';
+  return 'weekly';
 }
