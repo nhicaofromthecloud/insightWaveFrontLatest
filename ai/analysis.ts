@@ -224,7 +224,7 @@ export async function preprocessUserMessage(
     
     If no specific dates are mentioned:
     - For "last month" use 1st to last day of previous month, current month is ${currentMonth}
-    - For "this year" use 01/01/${currentYear} to today
+    - For "this year" use 01/01/2024 to today
     - For "last week" use last 7 days, current day is ${currentDay}
     - Default to last 7 days if no time reference is found`,
     prompt: message
