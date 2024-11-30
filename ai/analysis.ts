@@ -32,8 +32,8 @@ export async function weeklyAnalysis({
   timeRange
 }: AnalysisParams): Promise<AnalysisResult> {
   console.log('Weekly Analysis Time Range:', {
-    start: timeRange.start.toLocaleDateString(),
-    end: timeRange.end.toLocaleDateString()
+    start: timeRange.start.toISOString(),
+    end: timeRange.end.toISOString()
   });
 
   const reviews = await Review.find({
@@ -43,20 +43,14 @@ export async function weeklyAnalysis({
     }
   }).sort({ createdAt: -1 });
 
-  console.log('Weekly Analysis Data:', {
-    timeRange: `${timeRange.start.toLocaleDateString()} - ${timeRange.end.toLocaleDateString()}`,
-    totalReviews: reviews.length,
-    firstReviewDate: reviews[0]?.createdAt?.toLocaleDateString(),
-    lastReviewDate: reviews[reviews.length - 1]?.createdAt?.toLocaleDateString()
-  });
-
   return {
     reviews,
-    prompt: `Analyze the following customer reviews and their sentiments from ${timeRange.start.toLocaleDateString()} to ${timeRange.end.toLocaleDateString()}. For each review, consider both the numerical score and sentiment analysis: ${JSON.stringify(
+    prompt: `Analyze the following customer reviews and their sentiments from ${timeRange.start.toISOString()} to ${timeRange.end.toISOString()}. For each review, consider both the numerical score and sentiment analysis: ${JSON.stringify(
       reviews.map((r) => ({
         score: r.score,
         sentiment: r.sentiment,
-        responses: r.responses
+        responses: r.responses,
+        date: r.createdAt.toISOString()
       }))
     )}`
   };
@@ -66,8 +60,8 @@ export async function monthlyAnalysis({
   timeRange
 }: AnalysisParams): Promise<AnalysisResult> {
   console.log('Monthly Analysis Time Range:', {
-    start: timeRange.start.toLocaleDateString(),
-    end: timeRange.end.toLocaleDateString()
+    start: timeRange.start.toISOString(),
+    end: timeRange.end.toISOString()
   });
 
   const reviews = await Review.find({
@@ -77,18 +71,10 @@ export async function monthlyAnalysis({
     }
   }).sort({ createdAt: -1 });
 
-  console.log('Monthly Analysis Data:', {
-    timeRange: `${timeRange.start.toLocaleDateString()} - ${timeRange.end.toLocaleDateString()}`,
-    totalReviews: reviews.length,
-    firstReviewDate: reviews[0]?.createdAt?.toLocaleDateString(),
-    lastReviewDate: reviews[reviews.length - 1]?.createdAt?.toLocaleDateString()
-  });
-
   const scores = reviews.map((review: ReviewType) => review.score);
   const averageScore =
     scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
 
-  // Get up to 10 reviews closest to average score
   const reviewsWithDistance = reviews.map((review: ReviewType) => ({
     review,
     distance: Math.abs(review.score - averageScore)
@@ -102,11 +88,12 @@ export async function monthlyAnalysis({
   return {
     reviews: closestReviews,
     averageScore,
-    prompt: `Analyze these representative customer reviews from ${timeRange.start.toLocaleDateString()} to ${timeRange.end.toLocaleDateString()}. The average score is ${averageScore}. Consider both numerical scores and sentiment analysis for each review: ${JSON.stringify(
+    prompt: `Analyze these representative customer reviews from ${timeRange.start.toISOString()} to ${timeRange.end.toISOString()}. The average score is ${averageScore}. Consider both numerical scores and sentiment analysis for each review: ${JSON.stringify(
       closestReviews.map((r) => ({
         score: r.score,
         sentiment: r.sentiment,
-        responses: r.responses
+        responses: r.responses,
+        date: r.createdAt.toISOString()
       }))
     )}`
   };
@@ -116,8 +103,8 @@ export async function yearlyAnalysis({
   timeRange
 }: AnalysisParams): Promise<AnalysisResult> {
   console.log('Yearly Analysis Time Range:', {
-    start: timeRange.start.toLocaleDateString(),
-    end: timeRange.end.toLocaleDateString()
+    start: timeRange.start.toISOString(),
+    end: timeRange.end.toISOString()
   });
 
   const reviews = await Review.find({
@@ -127,22 +114,6 @@ export async function yearlyAnalysis({
     }
   }).sort({ createdAt: -1 });
 
-  console.log('Yearly Analysis Data:', {
-    timeRange: `${timeRange.start.toLocaleDateString()} - ${timeRange.end.toLocaleDateString()}`,
-    totalReviews: reviews.length,
-    firstReviewDate: reviews[0]?.createdAt?.toLocaleDateString(),
-    lastReviewDate:
-      reviews[reviews.length - 1]?.createdAt?.toLocaleDateString(),
-    monthlyDistribution: Array.from(
-      new Set(
-        reviews.map((r) =>
-          new Date(r.createdAt).toLocaleString('default', { month: 'long' })
-        )
-      )
-    )
-  });
-
-  // Group reviews by month and get 3 reviews every 10 days
   const monthlyGroups = new Map<string, ReviewType[]>();
 
   reviews.forEach((review: ReviewType) => {
@@ -155,7 +126,6 @@ export async function yearlyAnalysis({
 
   const sampledReviews: ReviewType[] = [];
   monthlyGroups.forEach((monthReviews) => {
-    // Split month into 3 periods of 10 days
     for (let i = 0; i < 3; i++) {
       const periodStart = i * 10;
       const periodEnd = (i + 1) * 10;
@@ -165,7 +135,6 @@ export async function yearlyAnalysis({
         return day >= periodStart && day < periodEnd;
       });
 
-      // Get one random review from each period if available
       if (periodReviews.length > 0) {
         const randomIndex = Math.floor(Math.random() * periodReviews.length);
         sampledReviews.push(periodReviews[randomIndex]);
@@ -180,12 +149,12 @@ export async function yearlyAnalysis({
   return {
     reviews: sampledReviews,
     averageScore,
-    prompt: `Analyze these representative customer reviews from ${timeRange.start.toLocaleDateString()} to ${timeRange.end.toLocaleDateString()}. The average score is ${averageScore}. Consider both numerical scores and sentiment analysis trends over time: ${JSON.stringify(
+    prompt: `Analyze these representative customer reviews from ${timeRange.start.toISOString()} to ${timeRange.end.toISOString()}. The average score is ${averageScore}. Consider both numerical scores and sentiment analysis trends over time: ${JSON.stringify(
       sampledReviews.map((r) => ({
         score: r.score,
         sentiment: r.sentiment,
         responses: r.responses,
-        date: r.createdAt
+        date: r.createdAt.toISOString()
       }))
     )}`
   };
