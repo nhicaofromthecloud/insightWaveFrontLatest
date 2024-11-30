@@ -181,7 +181,7 @@ export async function preprocessUserMessage(
   console.log('Current day:', currentDay);
   const completion = await generateText({
     model: customModel('gpt-3.5-turbo'),
-    system: `You are a date range extractor. Given a user message, extract or infer the date range they're asking about.
+    system: `You are a date range extractor. Given a user message, extract or infer the date range they're asking about. The current year is 2024
     Always respond in this exact JSON format:
     {
       "userMessage": "original message",
