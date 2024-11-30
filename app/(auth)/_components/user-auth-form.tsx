@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import * as z from 'zod';
 import GithubSignInButton from './github-auth-button';
 import { cn } from '@/lib/utils';
-
+import { useRouter } from 'next/navigation';
 const formSchema = z.object({
   email: z.string().email({ message: 'Enter a valid email address' }),
   password: z.string().optional()
@@ -31,6 +31,7 @@ export default function UserAuthForm() {
   const callbackUrl = searchParams.get('callbackUrl');
   const [loading, startTransition] = useTransition();
   const [isSignIn, setIsSignIn] = useState(false);
+  const router = useRouter();
   const defaultValues = {
     email: 'demo@gmail.com',
     password: ''
@@ -42,14 +43,29 @@ export default function UserAuthForm() {
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
 
   const onSubmit = async (data: UserFormValue) => {
-    startTransition(() => {
-      signIn(isSignIn ? 'login' : 'signup', {
-        email: data.email,
-        password: data.password,
-        confirmPassword: data.password,
-        callbackUrl: callbackUrl ?? '/dashboard'
-      });
-      toast.success('Signed In Successfully!');
+    startTransition(async () => {
+      try {
+        const result = await signIn(isSignIn ? 'login' : 'signup', {
+          email: data.email,
+          password: data.password,
+          confirmPassword: data.password,
+          callbackUrl: callbackUrl ?? '/dashboard',
+          redirect: false
+        });
+
+        if (result?.error && isSignIn) {
+          toast.error('Email or password is incorrect');
+        } else if (result?.error && !isSignIn) {
+          toast.error('Email already registered');
+        } else if (result?.ok) {
+          toast.success(
+            isSignIn ? 'Signed in successfully!' : 'Account created successfully!'
+          );
+          router.push(callbackUrl ?? '/dashboard');
+        }
+      } catch (error) {
+        toast.error('Authentication failed. Please try again.');
+      }
     });
   };
 
