@@ -208,9 +208,15 @@ export async function DELETE(request: Request) {
   }
 }
 
-function parseDate(dateStr: string): Date {
+function parseDateOld(dateStr: string): Date {
   const [day, month, year] = dateStr.split('/').map(Number);
   return new Date(year, month - 1, day);
+}
+
+function parseDate(dateStr: string): Date {
+  const [day, month, year] = dateStr.split('/').map(Number);
+  const fullYear = year < 100 ? 2000 + year : year;
+  return new Date(fullYear, month - 1, day);
 }
 
 function determineRangeType(
