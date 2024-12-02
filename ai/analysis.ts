@@ -31,15 +31,20 @@ interface AnalysisResult {
 export async function weeklyAnalysis({
   timeRange
 }: AnalysisParams): Promise<AnalysisResult> {
+  const endDate = new Date(timeRange.end);
+  endDate.setUTCDate(endDate.getUTCDate() + 1);
+  endDate.setUTCHours(23, 59, 59, 999);
+
   console.log('Weekly Analysis Time Range:', {
     start: timeRange.start.toISOString(),
-    end: timeRange.end.toISOString()
+    end: endDate.toISOString()
   });
+
 
   const reviews = await Review.find({
     createdAt: {
       $gte: timeRange.start,
-      $lte: timeRange.end
+      $lte: endDate
     }
   }).sort({ createdAt: -1 });
 
@@ -131,7 +136,7 @@ export async function yearlyAnalysis({
       const periodEnd = (i + 1) * 10;
 
       const periodReviews = monthReviews.filter((review: ReviewType) => {
-        const day = review.createdAt.getDate();
+        const day = review.createdAt.getUTCDate();
         return day >= periodStart && day < periodEnd;
       });
 
@@ -173,15 +178,14 @@ interface PreprocessedMessage {
 export async function preprocessUserMessage(
   message: string
 ): Promise<PreprocessedMessage> {
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  const currentDay = new Date().getDate();
-  console.log('Current year:', currentYear);
-  console.log('Current month:', currentMonth);
-  console.log('Current day:', currentDay);
+  const now = new Date();
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth() + 1;
+  const currentDay = now.getUTCDate();
+
   const completion = await generateText({
     model: customModel('gpt-3.5-turbo'),
-    system: `You are a date range extractor. Given a user message, extract or infer the date range they're asking about. The current year is 2024
+    system: `You are a date range extractor. Given a user message, extract or infer the date range they're asking about. Current year is ${currentYear}
     Always respond in this exact JSON format:
     {
       "userMessage": "original message",
@@ -190,12 +194,14 @@ export async function preprocessUserMessage(
         "to": "dd/mm/yy"
       }
     }
+
+    Default is data from current UTC day + 1 day into the future, current is ${currentDay} of month ${currentMonth} of year ${currentYear}, to 7 days back
     
     If no specific dates are mentioned:
     - For "last month" use 1st to last day of previous month, current month is ${currentMonth}
-    - For "this year" use 01/01/2024 to today
-    - For "last week" use last 7 days, current day is ${currentDay}
-    - Default to last 7 days if no time reference is found`,
+    - For "this year" use 01/01/${currentYear} to today
+    - For "last week" use last 7 days including today, current day is ${currentDay}
+    - Default to last 7 days including today if no time reference is found`,
     prompt: message
   });
 
@@ -217,15 +223,16 @@ function extractDateRangeFromResponse(response: string): PreprocessedMessage {
       timeRange: { from, to }
     };
   } else {
+    const now = new Date();
     return {
       userMessage: result.userMessage,
       timeRange: {
-        from: `${new Date().getDate() - 7}/${
-          new Date().getMonth() + 1
-        }/${new Date().getFullYear()}`,
-        to: `${new Date().getDate()}/${
-          new Date().getMonth() + 1
-        }/${new Date().getFullYear()}`
+        from: `${now.getUTCDate() - 7}/${
+          now.getUTCMonth() + 1
+        }/${now.getUTCFullYear()}`,
+        to: `${now.getUTCDate()}/${
+          now.getUTCMonth() + 1
+        }/${now.getUTCFullYear()}`
       }
     };
   }
