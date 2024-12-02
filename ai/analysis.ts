@@ -179,7 +179,7 @@ export async function preprocessUserMessage(
   message: string
 ): Promise<PreprocessedMessage> {
   const now = new Date();
-  const currentYear = now.getUTCFullYear();
+  const currentYear = '2024';
   const currentMonth = now.getUTCMonth() + 1;
   const currentDay = now.getUTCDate();
 
